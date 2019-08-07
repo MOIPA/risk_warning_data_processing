@@ -53,7 +53,7 @@ public class TaskUtils {
         }
         if (method != null) {
             try {
-                method.invoke(object, "post_1", "comment_1", scheduleJob.getId());
+                method.invoke(object, "post_"+scheduleJob.getId(), "comment_"+scheduleJob.getId(), scheduleJob.getId());
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             } catch (IllegalArgumentException e) {

@@ -207,7 +207,8 @@ public class RegressionLine {
                     "The scale must be a positive integer or zero");
         }
 
-        BigDecimal b = new BigDecimal(Double.toString(v));
+//        BigDecimal b = new BigDecimal(Double.toString(v));
+        BigDecimal b = new BigDecimal(v);
         BigDecimal one = new BigDecimal("1");
         return b.divide(one, scale, BigDecimal.ROUND_HALF_UP).doubleValue();
 

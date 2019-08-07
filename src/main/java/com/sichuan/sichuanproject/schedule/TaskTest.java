@@ -41,11 +41,11 @@ public class TaskTest {
 
         produceRiskResult(postTableName, commentTableName, warningModelId, date);
 
-        RegressionLine line = new RegressionLine();
+//        RegressionLine line = new RegressionLine();
 
-        line.getA0();
-        line.getA1();
-        line.getR();
+//        line.getA0();
+//        line.getA1();
+//        line.getR();
 
         produceRiskSignal(warningModelId, date);
 
@@ -72,7 +72,7 @@ public class TaskTest {
         String timeString = timeFormat.format(date);
 
         RiskResult riskResult = new RiskResult(timeString, riskValue, warningModelId);
-        postMapper.insertRiskResult(riskResult);
+        int out = postMapper.insertRiskResult(riskResult);
         System.out.println(riskResult);
     }
 

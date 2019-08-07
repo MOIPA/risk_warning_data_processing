@@ -44,7 +44,7 @@ public interface PostMapper {
      */
     @Options(useGeneratedKeys = true, keyProperty = "id")
     @Insert("insert into risk_result_1(created_at,risk_value,warning_model_id) values(#{createdAt},#{riskValue},#{warningModelId})")
-    void insertRiskResult(RiskResult riskResult);
+    int insertRiskResult(RiskResult riskResult);
 
     /**
      * 查询结果
@@ -53,6 +53,7 @@ public interface PostMapper {
      * @param createdAt
      * @return
      */
+    //TODO 修改三日内数据
     @Select("select * from risk_result_1 where warning_model_id = #{warningModelId} and created_at = #{createdAt}")
     RiskResult getRiskResultByDate(@Param("warningModelId") Long warningModelId, @Param("createdAt") String createdAt);
 
