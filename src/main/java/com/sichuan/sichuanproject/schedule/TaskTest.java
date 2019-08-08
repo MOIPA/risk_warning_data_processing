@@ -5,19 +5,22 @@ import com.sichuan.sichuanproject.mapper.PostMapper;
 import com.sichuan.sichuanproject.mapper.WarningModelRuleMapper;
 import com.sichuan.sichuanproject.mapper.WarningSignalMapper;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import sun.jvm.hotspot.utilities.Interval;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
 /**
  * @author
  */
-
+@Slf4j
 @Component
 @Data
 public class TaskTest {
@@ -38,8 +41,10 @@ public class TaskTest {
 
         //获取今天的日期的字符串，转换为yyyy-MM-dd格式
         Date date = new Date(System.currentTimeMillis());
-
+        // 只对今日做风险处理
         produceRiskResult(postTableName, commentTableName, warningModelId, date);
+
+//        produceRiskResultSeveralDays(postTableName, commentTableName, warningModelId, 3,date);
 
 //        RegressionLine line = new RegressionLine();
 
@@ -51,13 +56,46 @@ public class TaskTest {
 
     }
 
-    private void produceRiskResult(String postTableName, String commentTableName, Long warningModelId, Date date) {
-        Float riskValue = 0f;
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        String dateString = simpleDateFormat.format(date);
+    /**
+     * 几日内风险，单日风险值太低，备用
+     *
+     *  @param postTableName
+     * @param commentTableName
+     * @param warningModelId
+     * @param interval
+     * @param produceDay
+     */
+    private void produceRiskResultSeveralDays(String postTableName, String commentTableName, Long warningModelId, Integer interval, Date produceDay) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Date date = new Date();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(Calendar.DAY_OF_MONTH, -interval);
+        date = calendar.getTime();
+        String dateString = sdf.format(date);
 
-        List<Post> postList = postMapper.getPostByModelId(postTableName, dateString);
-        List<Comment> commentList = postMapper.getCommentByModelId(commentTableName, dateString);
+        List<Post> postList = postMapper.getRecentPostByModelId(postTableName, dateString);
+        List<Comment> commentList = postMapper.getRecentCommentByModelId(commentTableName, dateString);
+        Float riskValue = produceRiskValue(postList, commentList);
+
+        SimpleDateFormat timeFormat = new SimpleDateFormat("yyyy-MM-dd HH");
+        String timeString = timeFormat.format(produceDay);
+
+        RiskResult riskResult = new RiskResult(timeString, riskValue, warningModelId);
+        log.info(String.valueOf(postMapper.insertRiskResult(riskResult)));
+        log.info(String.valueOf(riskResult));
+    }
+
+    /**
+     * 产生风险算法，简单相乘,
+     * TODO:应该使用策略模式抽取，后期替换
+     *
+     * @param postList
+     * @param commentList
+     * @return
+     */
+    Float produceRiskValue(List<Post> postList, List<Comment> commentList) {
+        Float riskValue = 0f;
         for (Post post : postList) {
             Float riskValueOfPost = (post.getAttitudesCount() + post.getRepostsCount()) * post.getSentiment();
             riskValue += riskValueOfPost;
@@ -67,13 +105,27 @@ public class TaskTest {
             Float riskValueOfComment = (comment.getLikeCount() + comment.getFollowersCount()) * comment.getSentiment();
             riskValue += riskValueOfComment;
         }
+        return riskValue;
+    }
+
+    private void produceRiskResult(String postTableName, String commentTableName, Long warningModelId, Date date) {
+        Float riskValue = 0f;
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String dateString = simpleDateFormat.format(date);
+
+        List<Post> postList = postMapper.getPostByModelId(postTableName, dateString);
+        List<Comment> commentList = postMapper.getCommentByModelId(commentTableName, dateString);
+
+        riskValue = produceRiskValue(postList, commentList);
 
         SimpleDateFormat timeFormat = new SimpleDateFormat("yyyy-MM-dd HH");
         String timeString = timeFormat.format(date);
 
         RiskResult riskResult = new RiskResult(timeString, riskValue, warningModelId);
         int out = postMapper.insertRiskResult(riskResult);
-        System.out.println(riskResult);
+        log.info(String.valueOf(out));
+//        System.out.println(riskResult);
+        log.info(String.valueOf(riskResult));
     }
 
     private void produceRiskSignal(Long warningModelId, Date date) {
@@ -136,6 +188,7 @@ public class TaskTest {
             String fxyjId = "FXYJ_TX_" + date.getTime()/10;
             String fxyjTitle = warningModelRule.getKeyWord() + "风险预警";
 
+//            TODO: detailUrl 字段设置
             warningSignal.setFxyjId(fxyjId);
             warningSignal.setFxyjDomainId(warningModelRule.getDomainId());
             warningSignal.setFxyjAreaNumber("510000");
@@ -149,7 +202,7 @@ public class TaskTest {
             warningSignalMapper.addWarningSignal(warningSignal);
             restTemplate.postForObject("http://59.225.206.13:8751//risk-warning/signal/add", warningSignal, Integer.class);
 
-        }
+        }else log.info("no risk produced......");
 
     }
 

@@ -18,7 +18,7 @@ import java.util.List;
 public interface PostMapper {
 
     /**
-     * 获取博文
+     * 获取当日博文
      *
      * @param postTableName
      * @param createdAt
@@ -26,6 +26,16 @@ public interface PostMapper {
      */
     @SelectProvider(type = PostProvider.class, method = "getPostFromTableName")
     List<Post> getPostByModelId(@Param("postTableName") String postTableName, @Param("createdAt") String createdAt);
+
+    /**
+     * 获取最近几日博文
+     *
+     * @param postTableName
+     * @param createdAt
+     * @return
+     */
+    @SelectProvider(type = PostProvider.class, method = "getSeveralPostFromTableName")
+    List<Post> getRecentPostByModelId(@Param("postTableName") String postTableName, @Param("createdAt") String createdAt);
 
     /**
      * 获取评论
@@ -36,6 +46,16 @@ public interface PostMapper {
      */
     @SelectProvider(type = PostProvider.class, method = "getCommentFromTableName")
     List<Comment> getCommentByModelId(@Param("commentTableName") String commentTableName, @Param("createdAt") String createdAt);
+
+    /**
+     * 获取最近几日评论
+     *
+     * @param commentTableName
+     * @param createdAt
+     * @return
+     */
+    @SelectProvider(type = PostProvider.class, method = "getSeveralCommentFromTableName")
+    List<Comment> getRecentCommentByModelId(@Param("commentTableName") String commentTableName, @Param("createdAt") String createdAt);
 
     /**
      * 插入风险分析结果
@@ -53,7 +73,8 @@ public interface PostMapper {
      * @param createdAt
      * @return
      */
-    //TODO 修改三日内数据
+    //TODO 异常：产生太多risk_result导致，添加 limit 1
+//    @Select("select * from risk_result_1 where warning_model_id = #{warningModelId} and created_at = #{createdAt} limit 1")
     @Select("select * from risk_result_1 where warning_model_id = #{warningModelId} and created_at = #{createdAt}")
     RiskResult getRiskResultByDate(@Param("warningModelId") Long warningModelId, @Param("createdAt") String createdAt);
 
@@ -67,6 +88,19 @@ public interface PostMapper {
         public String getCommentFromTableName(@Param("commentTableName") String commentTableName, @Param("createdAt") String createdAt) {
             String sql = "select c.comment_id, c.post_id, c.text, c.created_at, c.like_count, c.user_id, c.screen_name, c.profile_url, c.description, c.gender, c.followers_count, c.sentiment" +
                     " from ${commentTableName} c where c.created_at = #{createdAt}";
+            System.out.println(sql);
+            return sql;
+        }
+
+        public String getSeveralPostFromTableName(@Param("commentTableName") String commentTableName, @Param("createdAt") String createdAt) {
+            String sql = "select c.comment_id, c.post_id, c.text, c.created_at, c.like_count, c.user_id, c.screen_name, c.profile_url, c.description, c.gender, c.followers_count, c.sentiment" +
+                    " from ${commentTableName} c where c.created_at >= #{createdAt}";
+            System.out.println(sql);
+            return sql;
+        }
+        public String getSeveralCommentFromTableName(@Param("commentTableName") String commentTableName, @Param("createdAt") String createdAt) {
+            String sql = "select c.comment_id, c.post_id, c.text, c.created_at, c.like_count, c.user_id, c.screen_name, c.profile_url, c.description, c.gender, c.followers_count, c.sentiment" +
+                    " from ${commentTableName} c where c.created_at >= #{createdAt}";
             System.out.println(sql);
             return sql;
         }
